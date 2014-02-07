@@ -2,8 +2,8 @@ from subprocess import Popen, PIPE, call
 from threading import Thread
 import getpass
 import time, datetime
-import wiringpi
 import os
+import wiringpi
 GPIO = wiringpi.GPIO(wiringpi.GPIO.WPI_MODE_SYS)
 
 class Thermostat(object):
