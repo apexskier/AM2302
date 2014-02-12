@@ -28,6 +28,9 @@ class Thermostat(object):
 
         wiringpi.digitalWrite(self.THERM, 0)
 
+    def __repr__(self):
+        return 'thermostat'
+
     def run(self):
         def run_():
             while self.running:
