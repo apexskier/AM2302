@@ -3,15 +3,33 @@ from threading import Thread
 import getpass
 import time, datetime
 import os
+import logging
 import wiringpi2 as wiringpi
 import _cwd
+
 #wiringpi.wiringPiSetupGpio()
 wiringpi.wiringPiSetupSys()
 
 class Thermostat(object):
     def __init__(self, out_pin, in_pin, target_temp=55):
+        self.graphlogger = logging.getLogger(__name__)
+        self.graphlogger.setLevel(logging.INFO)
+
+        # create a file handler
+        graphhandler = logging.FileHandler('thermostat.log')
+        graphhandler.setLevel(logging.INFO)
+
+        # create a logging format
+        graphformatter = logging.Formatter('{"time": "%(asctime)s", %(message)s},')
+        graphhandler.setFormatter(graphformatter)
+
+        # add the handlers to the logger
+        self.graphlogger.addHandler(graphhandler)
+
         self.target_temp = target_temp
         self.current_temp = None
+        self.temp = None
+        self.humid = None
         self.last_time = None
         self.THERM = out_pin
         self.INPUT = in_pin
@@ -38,8 +56,10 @@ class Thermostat(object):
                 th_out, th_err = th_cmd.communicate()
 
                 if th_out and th_out != "err":
-                    self.last_time = time.strftime("%H:%M:%S")
+                    self.last_time = time.strftime("%Y-%m-%d %H:%M:%S")
                     temp, humid = th_out.split(',')
+                    self.temp = temp
+                    self.humid = humid
                     self.current_temp = (9.0 / 5.0) * float(temp) + 32
                     if self.current_temp < self.target_temp - 2 and not self.heat_on:
                         self.heat_on = True
@@ -47,6 +67,14 @@ class Thermostat(object):
                     elif self.current_temp >= self.target_temp and self.heat_on:
                         self.heat_on = False
                         wiringpi.digitalWrite(self.THERM, 0)
+
+                if self.temp and self.humid and self.target_temp:
+                    self.graphlogger.info('"temp": {}, "humid": {}, "target": {}, "mtime": "{}"'.format(
+                        self.temp,
+                        self.humid,
+                        self.target_temp,
+                        self.last_time
+                    ))
 
                 time.sleep(10)
         self.t = Thread(target=run_)
@@ -60,7 +88,6 @@ class Thermostat(object):
         elif self.current_temp >= self.target_temp and self.heat_on:
             self.heat_on = False
             wiringpi.digitalWrite(self.THERM, 0)
-
 
     def get(self):
         return self.current_temp
