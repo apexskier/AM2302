@@ -1,5 +1,5 @@
 from subprocess import Popen, PIPE, call
-from threading import Thread
+import threading
 import getpass
 import time, datetime
 import os
@@ -46,46 +46,48 @@ class Thermostat(object):
 
         wiringpi.digitalWrite(self.THERM, 0)
 
+        self.timer = threading.Timer(1, self.tick)
+        self.timer.start()
+
     def __repr__(self):
         return 'thermostat'
 
-    def run(self):
-        def run_():
-            while self.running:
-                th_cmd = Popen(["sudo", self.PATH + "/temp_humid_sensor", str(self.INPUT)], stdout=PIPE)
-                th_out, th_err = th_cmd.communicate()
+    def tick(self):
+        if self.running:
+            self.timer.cancel()
+            self.timer = threading.Timer(60 * 5, self.tick)
+            self.timer.start()
 
-                if th_out and th_out != "err":
-                    self.last_time = time.strftime("%Y-%m-%d %H:%M:%S")
-                    temp, humid = th_out.split(',')
-                    self.temp = temp
-                    self.humid = humid
-                    self.current_temp = (9.0 / 5.0) * float(temp) + 32
-                    if self.current_temp < self.target_temp - 2 and not self.heat_on:
-                        self.heat_on = True
-                        wiringpi.digitalWrite(self.THERM, 1)
-                    elif self.current_temp >= self.target_temp and self.heat_on:
-                        self.heat_on = False
-                        wiringpi.digitalWrite(self.THERM, 0)
+        th_cmd = Popen(["sudo", self.PATH + "/temp_humid_sensor", str(self.INPUT)], stdout=PIPE)
+        th_out, th_err = th_cmd.communicate()
 
-                if self.temp and self.humid and self.target_temp:
-                    self.graphlogger.info('"temp": {}, "humid": {}, "target": {}, "mtime": "{}"'.format(
-                        self.temp,
-                        self.humid,
-                        self.target_temp,
-                        self.last_time
-                    ))
+        if th_out and th_out != "err":
+            self.last_time = time.strftime("%Y-%m-%d %H:%M:%S")
+            temp, humid = th_out.split(',')
+            self.temp = temp
+            self.humid = humid
+            self.current_temp = (9.0 / 5.0) * float(temp) + 32
+            if self.current_temp < self.target_temp - 2 and not self.heat_on:
+                self.heat_on = True
+                wiringpi.digitalWrite(self.THERM, 1)
+            elif self.current_temp >= self.target_temp and self.heat_on:
+                self.heat_on = False
+                wiringpi.digitalWrite(self.THERM, 0)
 
-                time.sleep(10)
-        self.t = Thread(target=run_)
-        return self.t
+        if self.temp and self.humid and self.target_temp:
+            self.graphlogger.info('"temp": {}, "humid": {}, "target": {}, "mtime": "{}"'.format(
+                self.temp,
+                self.humid,
+                self.target_temp,
+                self.last_time
+            ))
 
     def set(self, target_temp):
         self.target_temp = float(target_temp)
-        if self.current_temp and self.current_temp < self.target_temp - 2 and not self.heat_on:
+        if self.current_temp and self.current_temp < self.target_temp and not self.heat_on:
             self.heat_on = True
             wiringpi.digitalWrite(self.THERM, 1)
-        elif self.current_temp >= self.target_temp and self.heat_on:
+        elif self.current_temp > self.target_temp and self.heat_on:
             self.heat_on = False
             wiringpi.digitalWrite(self.THERM, 0)
 
@@ -99,27 +101,20 @@ class Thermostat(object):
     def get_target(self):
         return self.target_temp
 
+    def get_status(self):
+        return self.heat_on
+
     def off(self):
+        self.timer.cancel()
         self.running = False
         wiringpi.digitalWrite(self.THERM, 0)
 
 if __name__ == '__main__':
     import signal
-    thermostat = Thermostat(17, 4)
-    tt = thermostat.run()
-
     def sig_handler(signal, frame):
-        print("Waiting for Thermostat to finish.")
-        tt.join()
-        sys.exit(0)
+        print("Stopping")
+        thermostat.off()
+        #sys.exit(0)
     signal.signal(signal.SIGINT, sig_handler)
 
-    try:
-        tt = thermostat.run()
-        tt.start()
-        for i in range(0, 5):
-            print(thermostat.get_temp(), thermostat.get_last_time())
-            time.sleep(5)
-        tt.join()
-    finally:
-        pass
+    thermostat = Thermostat(17, 4)
