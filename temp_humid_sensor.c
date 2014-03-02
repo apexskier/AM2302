@@ -54,8 +54,7 @@ int main(int argc, char **argv)
 }
 
 int readDHT(int pin) {
-    int bits[250], data[100];
-    int bitidx = 0;
+    int data[100];
 
     int counter = 0;
     int laststate = HIGH;
@@ -85,7 +84,6 @@ int readDHT(int pin) {
         }
         laststate = bcm2835_gpio_lev(pin);
         if (counter == 1000) break;
-        bits[bitidx++] = counter;
 
         if ((i > 3) && (i % 2 == 0)) {
             // shove each bit into the storage bytes
@@ -94,15 +92,6 @@ int readDHT(int pin) {
             j++;
         }
     }
-
-#ifdef DEBUG
-    for (i = 3; i < bitidx; i += 2) {
-        printf("bit %d: %d\n", i-3, bits[i]);
-        printf("bit %d: %d (%d)\n", i-2, bits[i+1], bits[i+1] > 200);
-    }
-#endif
-
-    //printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4]);
 
     if ((j >= 39) && (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF))) {
         // yay!

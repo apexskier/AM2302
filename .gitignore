@@ -1,2 +1,4 @@
 *.o
 temp_humid_sensor
+MANIFEST
+dist
