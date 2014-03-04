@@ -1,3 +1,4 @@
+#include <Python.h>
 //  How to access GPIO registers from C-code on the Raspberry-Pi
 //  Example program
 //  15-January-2012
@@ -8,12 +9,6 @@
 
 // Access from ARM Running Linux
 
-#define BCM2708_PERI_BASE        0x20000000
-#define GPIO_BASE                (BCM2708_PERI_BASE + 0x200000) /* GPIO controller */
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <assert.h>
@@ -25,36 +20,8 @@
 #include <bcm2835.h>
 #include <unistd.h>
 
-#define MAXTIMINGS 100
-
-//#define DEBUG
-
-/* Prototypes */
-int readDHT(int pin);
-
-int main(int argc, char **argv)
-{
-    if (!bcm2835_init()) return 1; // Need the BCM2835 library
-
-    if (argc != 2) {
-	    printf("usage: %s GPIOpin#\n", argv[0]);
-	    printf("example: %s 4 - Read from GPIO #4\n", argv[0]);
-	    return 2;
-    }
-    int dhtpin = atoi(argv[1]);
-
-    if (dhtpin <= 0) {
-        printf("Please select a valid GPIO pin #\n");
-        return 3;
-    }
-
-    int ret = 0;
-    ret = readDHT(dhtpin);
-    return ret;
-}
-
-int readDHT(int pin) {
-    int data[100];
+int read_ths(int data[], int pin) {
+    if (!bcm2835_init()) return -1; // Need the BCM2835 library
 
     int counter = 0;
     int laststate = HIGH;
@@ -92,20 +59,57 @@ int readDHT(int pin) {
             j++;
         }
     }
-
     if ((j >= 39) && (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF))) {
-        // yay!
-        float f, h;
-        h = data[0] * 256 + data[1];
-        h /= 10;
-
-        f = (data[2] & 0x7F)* 256 + data[3];
-        f /= 10.0;
-        if (data[2] & 0x80) f *= -1;
-        printf("%f,%f", f, h);
-        return 0;
+        return 1;
     } else {
-        printf("err");
-        return -1;
+        return 0;
     }
+}
+
+static PyObject *ths_humid(PyObject *self, PyObject *args) {
+    int pin;
+    if (!PyArg_ParseTuple(args, "i", &pin)) return NULL;
+
+    int data[100];
+    int ret;
+    ret = read_ths(&data[0], pin);
+    if (ret < 0) return NULL;
+    if (ret == 0) return Py_None;
+
+    // yay!
+    float h;
+    h = data[0] * 256 + data[1];
+    h /= 10;
+    return Py_BuildValue("f", h);
+}
+
+static PyObject *ths_temp(PyObject *self, PyObject *args) {
+    int pin;
+    if (!PyArg_ParseTuple(args, "i", &pin)) return NULL;
+
+    int data[100];
+    int ret;
+    ret = read_ths(&data[0], pin);
+    if (ret < 0) return NULL;
+    if (ret == 0) return Py_None;
+
+    // yay!
+    float f;
+    f = (data[2] & 0x7F)* 256 + data[3];
+    f /= 10.0;
+    if (data[2] & 0x80) f *= -1;
+    return Py_BuildValue("f", f);
+}
+
+static PyMethodDef Am2302_thsMethods[] = {
+    {"get_temperature", ths_temp, METH_VARARGS, "Get the temperature from a pin."},
+    {"get_humidity", ths_humid, METH_VARARGS, "Get the humidity from a pin."},
+    {NULL, NULL, 0, NULL}
+};
+
+PyMODINIT_FUNC initam2302_ths(void) {
+    PyObject *m;
+
+    m = Py_InitModule("am2302_ths", Am2302_thsMethods);
+    if (m == NULL) return;
 }

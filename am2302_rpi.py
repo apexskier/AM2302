@@ -1,9 +1,6 @@
-from subprocess import Popen, PIPE, call
+from subprocess import call
 import threading, datetime
-import wiringpi2 as wiringpi
-import _cwd
-
-wiringpi.wiringPiSetupSys()
+import am2302_ths
 
 class Sensor(object):
     def __init__(self, pin):
@@ -13,30 +10,21 @@ class Sensor(object):
         self.last_time = None
         self.INPUT = pin
 
-        self.PATH = str(_cwd).split()[3][1:-10]
-        if not self.PATH:
-            self.PATH = '.'
-
         call(["gpio", "export", str(self.INPUT), "in"])
 
         self.timer = threading.Timer(0, self.tick)
         self.timer.start()
 
     def tick(self):
-        self.timer = threading.Timer(10, self.tick)
-        self.timer.start()
-
         try:
-            th_cmd = Popen(["sudo", self.PATH + "/temp_humid_sensor", str(self.INPUT)], stdout=PIPE)
-            th_out, th_err = th_cmd.communicate()
-
-            if th_out and th_out != "err":
+            temp = am2302_ths.get_temperature(self.INPUT)
+            if temp:
                 self.last_time = datetime.datetime.now()
-                temp, humid = th_out.split(',')
                 self.temp = temp
-                self.humid = humid
-                # self.current_temp = (9.0 / 5.0) * float(temp) + 32
+            self.timer = threading.Timer(10, self.tick)
+            self.timer.start()
         except:
+            self.off()
             print("Error reading from sensor.")
 
     def get(self):
@@ -47,3 +35,6 @@ class Sensor(object):
 
     def off(self):
         self.timer.cancel()
+
+    def __del__(self):
+        self.off()

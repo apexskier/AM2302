@@ -7,13 +7,13 @@ setup(
         author='Cameron Little',
         author_email='cameron@camlittle.com',
         url='https://github.com/apexskier/AM2302',
-        py_modules=['am2302_rpi', '_cwd'],
+        py_modules=['am2302_rpi'],
         ext_modules=[Extension(
-                'ths',
+                'am2302_ths',
                 define_macros = [('BCM2708_PERI_BASE', '0x20000000'),
                                  ('GPIO_BASE',         '(BCM2708_PERI_BASE + 0x200000)'),
                                  ('MAXTIMINGS',        100)],
-                sources=['ths.c'],
+                sources=['am2302_ths.c'],
                 library_dirs=['/usr/local/lib'],
                 libraries=['bcm2835'],
                 include_dirs=['/usr/local/include']
