@@ -1,4 +1,3 @@
-from subprocess import call
 import threading, datetime
 import am2302_ths
 
@@ -10,18 +9,16 @@ class Sensor(object):
         self.last_time = None
         self.INPUT = pin
 
-        call(["gpio", "export", str(self.INPUT), "in"])
-
-        self.timer = threading.Timer(0, self.tick)
+        self.timer = threading.Timer(0, self._tick)
         self.timer.start()
 
-    def tick(self):
+    def _tick(self):
         try:
             temp = am2302_ths.get_temperature(self.INPUT)
             if temp:
                 self.last_time = datetime.datetime.now()
                 self.temp = temp
-            self.timer = threading.Timer(10, self.tick)
+            self.timer = threading.Timer(10, self._tick)
             self.timer.start()
         except:
             self.off()
