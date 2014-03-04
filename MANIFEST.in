@@ -1,2 +1,4 @@
-include temp_humid_sensor.py
+include _cwd.py
+include setup.py
+include am2302_rpi.py
 include temp_humid_sensor.c

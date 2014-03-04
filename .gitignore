@@ -1,4 +1,6 @@
 *.o
+*.so
 temp_humid_sensor
 MANIFEST
 dist
+build

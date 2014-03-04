@@ -2,15 +2,20 @@ from distutils.core import setup, Extension
 
 setup(
         name='AM2302-rpi',
-        version='1.0',
+        version='1.0.6',
         description='Drive an AM2302 temperature sensor with a raspberry pi.',
         author='Cameron Little',
         author_email='cameron@camlittle.com',
         url='https://github.com/apexskier/AM2302',
-        py_modules=['temp_humid_sensor'],
+        py_modules=['am2302_rpi', '_cwd'],
         ext_modules=[Extension(
-                'temp_humid_sensor',
-                ['temp_humid_sensor.c'],
-                libraries=['bcm2835']
+                'ths',
+                define_macros = [('BCM2708_PERI_BASE', '0x20000000'),
+                                 ('GPIO_BASE',         '(BCM2708_PERI_BASE + 0x200000)'),
+                                 ('MAXTIMINGS',        100)],
+                sources=['ths.c'],
+                library_dirs=['/usr/local/lib'],
+                libraries=['bcm2835'],
+                include_dirs=['/usr/local/include']
             )]
     )
