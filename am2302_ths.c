@@ -21,8 +21,6 @@
 #include <unistd.h>
 
 int read_ths(int data[], int pin) {
-    if (!bcm2835_init()) return -1; // Need the BCM2835 library
-
     int counter = 0;
     int laststate = HIGH;
     int i = 0, j = 0;
@@ -108,6 +106,8 @@ static PyMethodDef Am2302_thsMethods[] = {
 };
 
 PyMODINIT_FUNC initam2302_ths(void) {
+    if (!bcm2835_init()) return; // Need the BCM2835 library
+
     PyObject *m;
 
     m = Py_InitModule("am2302_ths", Am2302_thsMethods);

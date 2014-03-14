@@ -2,7 +2,7 @@ from distutils.core import setup, Extension
 
 setup(
         name='AM2302-rpi',
-        version='1.1.1',
+        version='1.1.2',
         description='Drive an AM2302 temperature sensor with a raspberry pi.',
         author='Cameron Little',
         author_email='cameron@camlittle.com',
