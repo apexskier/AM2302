@@ -17,11 +17,11 @@ root user must be used to access the GPIO pins.
 Both methods return floats, or None if the sensor can't be read. The sensor
 can only be read once every few seconds.
 
-### get_temperature(pin)
+### `get_temperature(pin)`
 
 Reads the current temperature from a sensor attached to the specified pin.
 
-### get_humidity(pin)
+### `get_humidity(pin)`
 
 Reads the current humidity from a sensor attached to the specified pin.
 
@@ -32,19 +32,21 @@ to keep track of the current temperature without waiting for it.
 
 It has the following methods available.
 
-### __init__(pin)
+### `__init__(pin)`
 
 Create a new sensor object instance with `s = am2302_rpi.Sensor(4)`.
 
-### get()
+### `get(data="temp")`
 
-Get the last read temperature.
+Get the last read values.
 
-### get_last_time()
+`data`: what data to read. `"temp"` for temperature, `"humid"` for humidity and `"both"` for a tuple of both values.
+
+### `get_last_time()`
 
 Get the time of the last successful read.
 
-### off()
+### `off()`
 
 Turn the timer off by cancelling it's internal ticker. Make sure you call this
 before exiting.
